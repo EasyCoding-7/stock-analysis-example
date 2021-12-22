@@ -9,6 +9,7 @@ import numpy as np
 
 import settings
 import strategy1
+import strategy2
 
 
 def resource_path(relative_path):
@@ -48,7 +49,7 @@ class MainWindow(QMainWindow, form_class):
 
     @clear_textbrowser_decorator
     def on_clicked_stategy_2_btn(self):
-        strategy1.strategy2(self)
+        strategy2.strategy2(self)
 
     @clear_textbrowser_decorator
     def on_clicked_df_multiple_btn(self):
