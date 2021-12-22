@@ -10,6 +10,7 @@ import numpy as np
 import settings
 import strategy1
 import strategy2
+import strategy3
 
 
 def resource_path(relative_path):
@@ -42,6 +43,7 @@ class MainWindow(QMainWindow, form_class):
         self.clear_tb_btn.clicked.connect(self.on_clicked_clear_tb_btn)
         self.stategy_1_btn.clicked.connect(self.on_clicked_stategy_1_btn)
         self.stategy_2_btn.clicked.connect(self.on_clicked_stategy_2_btn)
+        self.stategy_3_btn.clicked.connect(self.on_clicked_stategy_3_btn)
 
     @clear_textbrowser_decorator
     def on_clicked_stategy_1_btn(self):
@@ -50,6 +52,10 @@ class MainWindow(QMainWindow, form_class):
     @clear_textbrowser_decorator
     def on_clicked_stategy_2_btn(self):
         strategy2.strategy2(self)
+
+    @clear_textbrowser_decorator
+    def on_clicked_stategy_3_btn(self):
+        strategy3.strategy3(self)
 
     @clear_textbrowser_decorator
     def on_clicked_df_multiple_btn(self):
