@@ -2,6 +2,7 @@ import os, environ
 from pathlib import Path
 import OpenDartReader
 from pykrx import stock
+import pandas as pd
 
 env = environ.Env(
     # set casting, default value
@@ -37,10 +38,31 @@ class make_ana_data:
             # 2020년 모든 회사의 3분기 보고서
             fs_2020_3Q = dart.finstate_all(bsns_year='2020', fs_div='CFS', reprt_code=11014)
         else:
-            df = stock.get_market_fundamental("20210108")
-            parent.print_tb(" data ", str(df))
+            df = None
+            year_list = ['20101101','20111101','20121101','20131101','20141101','20151101','20161101','20171101','20181101','20191101','20201101','20211101']
+            for list in year_list:
+                # get stock info
+                    # stock.get_market_fundamental : BPS, PER, PBR, EPS, DIV, DPS
+                df_temp1 = stock.get_market_fundamental(list)
+                    # stock.get_market_cap : 시가총액, 거래량, 거래대금, 상장주식수, 외국인보유주식수
+                df_temp2 = stock.get_market_cap(list)
+
+                # merge two dataframe
+                df_temp = df_temp1.join(df_temp2)
+
+                # merge dataframes
+                df_temp['year']=list[:4]
+                df_temp = df_temp.reset_index()#.rename(columns={"index": "ticker"})
+                if type(df) != type(None):
+                    df = pd.concat([df, df_temp], ignore_index=True)
+                else:
+                    df = df_temp.copy()
+
+                parent.print_tb(f" {list} ", str(df))
+                # df_temp.to_excel('./test.xlsx')
 
         self.start()
+
 
     def start(self):
         pass
