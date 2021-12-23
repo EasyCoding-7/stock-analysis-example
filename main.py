@@ -1,4 +1,5 @@
 import sys, os                  # system import
+from datetime import datetime
 from pathlib import Path
 
 from PyQt5 import uic           # PyQt
@@ -7,11 +8,13 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 import pandas as pd
 import FinanceDataReader as fdr
+import pandas_datareader.data as web
 import numpy as np
 import OpenDartReader
 
 from marcap import marcap_data
 import environ
+import sqlite3
 
 import settings
 import strategy1
@@ -54,6 +57,30 @@ class MainWindow(QMainWindow, form_class):
         self.stategy_1_btn.clicked.connect(self.on_clicked_stategy_1_btn)
         self.stategy_2_btn.clicked.connect(self.on_clicked_stategy_2_btn)
         self.stategy_3_btn.clicked.connect(self.on_clicked_stategy_3_btn)
+        self.write_sql_test.clicked.connect(self.on_clicked_write_sql_test)
+        self.read_sql_test.clicked.connect(self.on_clicked_read_sql_test)
+
+    @clear_textbrowser_decorator
+    def on_clicked_write_sql_test(self):
+        start = datetime(2010, 1, 1)
+        end = datetime(2016, 6, 12)
+        df = web.DataReader("078930.KS", "yahoo", start, end)
+
+        con = sqlite3.connect("./kospi.db")
+        df.to_sql('078930', con, if_exists='replace')
+
+        self.print_tb(" db is writed ", str(df))
+
+        con.close()
+
+    @clear_textbrowser_decorator
+    def on_clicked_read_sql_test(self):
+        con = sqlite3.connect("./kospi.db")
+        readed_df = pd.read_sql("SELECT * FROM '078930'", con, index_col='Date')
+
+        self.print_tb(" db is readed ", str(readed_df))
+
+        con.close()
 
     @clear_textbrowser_decorator
     def on_clicked_stategy_1_btn(self):

@@ -93,7 +93,45 @@
           </widget>
          </item>
          <item>
-          <spacer name="verticalSpacer_2">
+          <widget class="QPushButton" name="write_sql_test">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Write sql test</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="read_sql_test">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Read sql test</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="spacer">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
            </property>
@@ -359,7 +397,7 @@
      <x>0</x>
      <y>0</y>
      <width>1346</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
