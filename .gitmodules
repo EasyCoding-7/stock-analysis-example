@@ -1,0 +1,3 @@
+[submodule "marcap"]
+	path = marcap
+	url = https://github.com/FinanceData/marcap.git
