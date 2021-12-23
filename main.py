@@ -1,6 +1,5 @@
 import sys, os                  # system import
 from datetime import datetime
-from pathlib import Path
 
 from PyQt5 import uic           # PyQt
 from PyQt5 import QtGui
@@ -10,21 +9,15 @@ import pandas as pd
 import FinanceDataReader as fdr
 import pandas_datareader.data as web
 import numpy as np
-import OpenDartReader
 
+from makeanadata import make_ana_data
 from marcap import marcap_data
-import environ
 import sqlite3
 
 import settings
 import strategy1
 import strategy2
 import strategy3
-
-env = environ.Env(
-    # set casting, default value
-    DEBUG=(bool, False)
-)
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -51,7 +44,7 @@ class MainWindow(QMainWindow, form_class):
 
         # connect
         self.load_data_btn.clicked.connect(self.on_clicked_load_data_btn)
-        self.load_data_api_btn.clicked.connect(self.on_clicked_load_data_api_btn)
+        self.make_ana_data_btn.clicked.connect(self.on_clicked_make_ana_data_btn)
         self.df_multiple_btn.clicked.connect(self.on_clicked_df_multiple_btn)
         self.clear_tb_btn.clicked.connect(self.on_clicked_clear_tb_btn)
         self.stategy_1_btn.clicked.connect(self.on_clicked_stategy_1_btn)
@@ -129,29 +122,21 @@ class MainWindow(QMainWindow, form_class):
         asset_on_df
 
     @clear_textbrowser_decorator
-    def on_clicked_load_data_api_btn(self):
+    def on_clicked_make_ana_data_btn(self):
+        make_ana_data(self)
+        """
         # using datareader
         # samsung_df = fdr.DataReader('005390', '2017-01-01', '2017-12-31')
         # self.print_tb("8", str(samsung_df))
 
 
-        # using opendart
-        # read env file
-        base_dir = Path(__file__).resolve().parent
-        environ.Env.read_env(
-            env_file=os.path.join(base_dir, '.env')
-        )
 
-        api_key = env('OPENDART_API_KEY')
-        # dart = OpenDartReader(api_key)
-        # small = dart.report('005930', '소액주주', 2020, reprt_code=11014)
-        # self.print_tb(" small ", str(small))
 
         df_005930 = marcap_data('2021-01-21', code='005930')
         df_005930 = df_005930.assign(Amount=df_005930['Amount'].astype('int64'),
                                      Marcap=df_005930['Marcap'].astype('int64'))
         self.print_tb(" df_005930 ", str(df_005930))
-
+        """
 
     @clear_textbrowser_decorator
     def on_clicked_load_data_btn(self):
