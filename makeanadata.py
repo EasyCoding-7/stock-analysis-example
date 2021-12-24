@@ -40,12 +40,23 @@ class make_ana_data:
             fs_2020_3Q = dart.finstate_all(bsns_year='2020', fs_div='CFS', reprt_code=11014)
         else:
             df = None
-            buy_start_date = '0101'  # MMDD
-            but_end_date = '1230'
-            trading_ticker_number=15
+            buy_start_date = '1201'  # MMDD
+            buy_end_date = '1201'
+            trading_ticker_number=20
             total_ror_list = []
             total_mdd_list = []
-            year_list = ['20101101','20111101','20121101','20131101','20141101','20151101','20161101','20171101','20181101','20191101','20201101','20211101']
+            year_list = ['2010'+buy_start_date,
+                         '2011'+buy_start_date,
+                         '2012'+buy_start_date,
+                         '2013'+buy_start_date,
+                         '2014'+buy_start_date,
+                         '2015'+buy_start_date,
+                         '2016'+buy_start_date,
+                         '2017'+buy_start_date,
+                         '2018'+buy_start_date,
+                         '2019'+buy_start_date,
+                         '2020'+buy_start_date,
+                         '2021'+buy_start_date]
 
             for list in year_list:
                 # get stock info
@@ -78,28 +89,30 @@ class make_ana_data:
                 filtered_df = filtered_df[filtered_df['PBR'] >= 0.2]
                 # parent.print_tb(" PBR 0.2 이상 필터링", str(filtered_df))
 
-                # Selector - 2 : 15개 종목 필터링
-                smallest_pbr_series = filtered_df.groupby("year")['PBR'].nsmallest(trading_ticker_number)
+                # Selector - 2 : OO개 종목 필터링
+                smallest_pbr_series = filtered_df.groupby("year")['PBR'].nsmallest(trading_ticker_number*2)
                 # parent.print_tb(f" 년도별 하위 {trading_ticker_number}개 필터링", str(smallest_pbr_series))
 
                 total_ror = 0
                 total_mdd = 0
 
                 # 상장폐지일시 df가 empty
-                delisting_cnt = 0
+                cnt=0
                 for ticker in smallest_pbr_series.index:
                     # print(ticker[1])
-                    df = stock.get_market_ohlcv(str(list[:4]+buy_start_date), str(list[:4]+but_end_date), ticker[1])
+                    df = stock.get_market_ohlcv(str(list[:4]+buy_start_date), str(str(int(list[:4])+1)+buy_end_date), ticker[1])
                     ror, mdd, df = self.calculate_ror_mdd(df)
-                    if df.empty:
-                        delisting_cnt += 1
-                    else:
+                    if df.empty == False:
                         # parent.print_tb(" df", str(df))
                         # parent.print_tb(f" {ticker[1]} ", "ror : " + str(ror) + " | mdd : " + str(mdd))
+                        print(list, ticker[1])
                         total_ror += ror
                         total_mdd += mdd
-                total_ror = total_ror / (trading_ticker_number - delisting_cnt)
-                total_mdd = total_mdd / (trading_ticker_number - delisting_cnt)
+                        cnt += 1
+                        if cnt >= trading_ticker_number:
+                            break
+                total_ror = total_ror / trading_ticker_number
+                total_mdd = total_mdd / trading_ticker_number
                 total_ror_list.append(total_ror)
                 total_mdd_list.append(total_mdd)
                 parent.print_tb(f" {list[:4]} ", "ror : " + str(total_ror) + " | mdd : " + str(total_mdd))
@@ -140,6 +153,8 @@ class make_ana_data:
 
         # calculate mdd
         mdd = (df['고가'].max() - df['저가'].min()) / df['고가'].max() * 100
+        if mdd == 100:
+            ror = 0
         return ror, mdd, df
 
 
