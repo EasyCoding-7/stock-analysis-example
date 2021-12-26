@@ -32,7 +32,7 @@ class make_ana_data:
             # set opendart api
             api_key = env('OPENDART_API_KEY')
             dart = OpenDartReader(api_key)
-            year_list = ['2019']
+            year_list = ['2021']
 
             # connect db
             con = sqlite3.connect("./stock.db")
@@ -49,7 +49,7 @@ class make_ana_data:
 
                 for ticker in tickers_all_stock:
                     company_name = stock.get_market_ticker_name(ticker)
-                    # print(종목)
+                    print(company_name)
 
                     # 'OOOO'년 회사의 3분기 보고서(11014)
                     this_year_3Q_fs = dart.finstate_all(corp=ticker, bsns_year=str(list), fs_div='CFS', reprt_code='11014')
@@ -89,7 +89,12 @@ class make_ana_data:
 
                     """
 
-                    #parent.print_tb(f" 3분기보고서 ", str(this_year_3Q_fs))
+                    this_year_3Q_fs.to_excel('./test1.xlsx')
+                    last_year_fs.to_excel('./test3.xlsx')
+
+
+                    #parent.print_tb(f" this_year_3Q_fs : 3분기보고서 ", str(this_year_3Q_fs))
+                    #parent.print_tb(f" last_year_3Q_fs : 3분기보고서 ", str(last_year_3Q_fs))
                     #parent.print_tb(f" 사업보고서 ", str(last_year_fs))
                     #break
 
@@ -102,14 +107,27 @@ class make_ana_data:
                                 ['ifrs-full_Liabilities']), 'thstrm_amount'].replace(",", ""))
                             # 자본 + 부채 = 자산총계
                             assets = equity + liability
-                        except:
-                            parent.print_tb(f" 예외발생 ", f"{company_name} is Error")
+
+                            print('\n\n')
+                            print(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['IS']) & this_year_3Q_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'frmtrm_add_amount'].replace(",", ""))
+                            print(last_year_fs.loc[last_year_fs['sj_div'].isin(['IS']) & last_year_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'thstrm_amount'].replace(",",""))
+                            print(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['IS']) & this_year_3Q_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'thstrm_add_amount'].replace(",", ""))
+
+                            return
+
+                            profit_last_3Q = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['IS']) & this_year_3Q_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'frmtrm_add_amount'].replace(",", ""))
+                            profit_last = int(last_year_fs.loc[last_year_fs['sj_div'].isin(['IS']) & last_year_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'thstrm_amount'].replace(",",""))
+                            profit_this_3Q = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['IS']) & this_year_3Q_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'thstrm_add_amount'].replace(",", ""))
+
+                            profit = (profit_last - profit_last_3Q) + profit_this_3Q
+                        except Exception as e:
+                            parent.print_tb(f" 예외발생 ", f"{company_name} is Error : {e}")
                             continue
 
                         if type(df) == type(None):
-                            df = pd.DataFrame({'ticker': [ticker], '회사명': [company_name], '자본': [assets]})
+                            df = pd.DataFrame({'ticker': [ticker], '회사명': [company_name], '자본': [assets], '순이익': [profit]})
                         else:
-                            new_data = {'ticker': ticker, '회사명': company_name, '자본': assets}
+                            new_data = {'ticker': ticker, '회사명': company_name, '자본': assets, '순이익': profit}
                             df = df.append(new_data, ignore_index=True)
 
                         print(f"{company_name} is db in")
@@ -121,7 +139,10 @@ class make_ana_data:
 
                         # break
                     else:
-                        parent.print_tb(f" 예외발생 ", f"{company_name} is None")
+                        if type(this_year_3Q_fs) == type(None):
+                            parent.print_tb(f" 예외발생 ", f"this_year_3Q_fs : {company_name} is None")
+                        if type(last_year_fs) == type(None):
+                            parent.print_tb(f" 예외발생 ", f"last_year_fs : {company_name} is None")
 
                 df = df.set_index('ticker')
                 parent.print_tb(f" inserted db ", str(df))
