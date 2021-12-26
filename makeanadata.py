@@ -1,4 +1,5 @@
 import os, environ
+import sqlite3
 from pathlib import Path
 import OpenDartReader
 from pykrx import stock
@@ -11,33 +12,122 @@ env = environ.Env(
 )
 
 class make_ana_data:
-    def __init__(self, parent, using_open_dart=False):
+    def __init__(self, parent, using_open_dart=True):
         if using_open_dart:
             """
             ** 21-12-23 **
             * pykrx 사용하는 방향으로 선회
             * 더 필요한 데이터가 있다면 opendart에서 파싱하는 방향으로 변경예정
+            ** 21-12-26 **
+            * pykrx의 pbr데이터는 작년 pbr기준... 파싱이 필요하다
+            * 그리고 이후에 필요한 데이터는 모두 opendart에 있기에 한 번은 해야할 작업
             """
 
-            # using opendart
-            # read env file
+            # read env file for opendart api
             base_dir = Path(__file__).resolve().parent
             environ.Env.read_env(
                 env_file=os.path.join(base_dir, '.env')
             )
 
+            # set opendart api
             api_key = env('OPENDART_API_KEY')
             dart = OpenDartReader(api_key)
+            year_list = ['2019']
 
-            """
-            small = dart.report('005930', '소액주주', 2020, reprt_code=11014)
-            parent.print_tb(" just call test ", str(small))
-            """
+            # connect db
+            con = sqlite3.connect("./stock.db")
 
-            # 2019년 모든 회사의 사업보고서
-            fs_2019 = dart.finstate_all(bsns_year='2019', fs_div='CFS', reprt_code=11011)
-            # 2020년 모든 회사의 3분기 보고서
-            fs_2020_3Q = dart.finstate_all(bsns_year='2020', fs_div='CFS', reprt_code=11014)
+            for list in year_list:
+                tickers_kospi = stock.get_market_ticker_list(list+"1101", market="KOSPI")
+                tickers_kosdaq = stock.get_market_ticker_list(list+"1101", market="KOSDAQ")
+                # print(tickers_kospi)
+                # print(tickers_kosdaq)
+
+                tickers_all_stock = tickers_kospi + tickers_kosdaq
+                df = None
+                cnt = 0
+
+                for ticker in tickers_all_stock:
+                    company_name = stock.get_market_ticker_name(ticker)
+                    # print(종목)
+
+                    # 'OOOO'년 회사의 3분기 보고서(11014)
+                    this_year_3Q_fs = dart.finstate_all(corp=ticker, bsns_year=str(list), fs_div='CFS', reprt_code='11014')
+                    # 'OOOO-1'년 회사의 사업보고서(11011)
+                    last_year_fs = dart.finstate_all(corp=ticker, bsns_year=str(int(list)-1), fs_div='CFS', reprt_code='11011')
+
+                    """
+                    # 3분기 보고서
+     rcept_no        reprt_code bsns_year corp_code sj_div sj_nm                                                account_id                                                                     account_nm     account_detail    thstrm_nm thstrm_amount frmtrm_nm  frmtrm_amount ord thstrm_add_amount frmtrm_q_nm frmtrm_q_amount frmtrm_add_amount
+0    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_CurrentAssets                    유동자산           -                                                            제 20 기 3분기말  421173843404  제 19 기말   1511355997808  1   NaN               NaN         NaN             NaN             
+1    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_CashAndCashEquivalents           현금및현금성자산       -                                                            제 20 기 3분기말  134553398888  제 19 기말   53509862897    2   NaN               NaN         NaN             NaN             
+2    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_TradeAndOtherCurrentReceivables  매출채권 및 기타유동채권  -                                                            제 20 기 3분기말  101025292684  제 19 기말   80862783752    3   NaN               NaN         NaN             NaN             
+3    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_Inventories                      재고자산           -                                                            제 20 기 3분기말  59194848631   제 19 기말   51456822550    4   NaN               NaN         NaN             NaN             
+4    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_OtherCurrentFinancialAssets      기타유동금융자산       -                                                            제 20 기 3분기말  96462163103   제 19 기말   60948339838    5   NaN               NaN         NaN             NaN             
+..              ...    ...       ...           ...  ..       ...                                    ...           ...      ..                                                                    ...          ...       ...           ...   ..   ...               ...         ...             ...             
+178  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|기타포괄손익누계액 [member]  제 20 기 3분기   -525008485    NaN       NaN            16  NaN               제 19 기 3분기  -299356066      NaN             
+179  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|이익잉여금 [member]      제 20 기 3분기   252195596487  NaN       NaN            16  NaN               제 19 기 3분기  158151595483    NaN             
+180  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본금 [member]        제 20 기 3분기   46822295000   NaN       NaN            16  NaN               제 19 기 3분기  46822295000     NaN             
+181  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본잉여금 [member]      제 20 기 3분기   106806482209  NaN       NaN            16  NaN               제 19 기 3분기  126753121445    NaN             
+182  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본조정                제 20 기 3분기  
+                    """
+
+                    """
+# 사업보고서 
+      rcept_no       reprt_code bsns_year corp_code sj_div sj_nm     account_id                                                             account_nm                                                                   account_detail thstrm_nm thstrm_amount frmtrm_nm  frmtrm_amount bfefrmtrm_nm bfefrmtrm_amount ord thstrm_add_amount
+0    20200330003824  11011      2019      00365387  BS     재무상태표  ifrs-full_CurrentAssets                                                유동자산           -                                                            제 20 기    501055395105  제 19 기    1512070831211  제 18 기       318877073839     1   NaN             
+1    20200330003824  11011      2019      00365387  BS     재무상태표  ifrs-full_CashAndCashEquivalents                                       현금및현금성자산       -                                                            제 20 기    122986211759  제 19 기    53509862897    제 18 기       77402142843      2   NaN             
+2    20200330003824  11011      2019      00365387  BS     재무상태표  dart_ShortTermDepositsNotClassifiedAsCashEquivalents                   단기금융상품         -                                                            제 20 기                  제 19 기                   제 18 기       1366172085       3   NaN             
+3    20200330003824  11011      2019      00365387  BS     재무상태표  dart_CurrentFinancialAssetDesignationAsAtFairValueThroughProfitOrLoss  당기손익인식금융자산     -                                                            제 20 기                  제 19 기                   제 18 기       1404922800       4   NaN             
+4    20200330003824  11011      2019      00365387  BS     재무상태표  ifrs-full_TradeAndOtherCurrentReceivables                              매출채권 및 기타유동채권  -                                                            제 20 기    104945550415  제 19 기    80862783752    제 18 기       122363215331     5   NaN             
+..              ...    ...       ...           ...  ..       ...                                        ...                                        ... ..                                                               ...             ...     ...            ...       ...                ...    ..   ...             
+205  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|기타포괄손익누계액 [member]  제 20 기    -3055969672   제 19 기    -733914250     제 18 기       -86326079        19  NaN             
+206  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|이익잉여금 [member]      제 20 기    198771796598  제 19 기    157174672951   제 18 기       160276835162     19  NaN             
+207  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본금 [member]        제 20 기    46822295000   제 19 기    46822295000    제 18 기       46822295000      19  NaN             
+208  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본잉여금 [member]      제 20 기    100667329755  제 19 기    105883019120   제 18 기       103825938845     19  NaN             
+209  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본조정                제 20 기    -24721096254  제 19 기    -22058673120   제 18 기       -22058673120     19  NaN             
+
+                    """
+
+                    #parent.print_tb(f" 3분기보고서 ", str(this_year_3Q_fs))
+                    #parent.print_tb(f" 사업보고서 ", str(last_year_fs))
+                    #break
+
+                    if type(this_year_3Q_fs) != type(None) and type(last_year_fs) != type(None):
+                        try:
+                            equity = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['BS']) & this_year_3Q_fs['account_id'].isin(
+                                ['ifrs-full_Equity']), 'thstrm_amount'].replace(",", ""))
+                            # 당기부채(부채총계)
+                            liability = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['BS']) & this_year_3Q_fs['account_id'].isin(
+                                ['ifrs-full_Liabilities']), 'thstrm_amount'].replace(",", ""))
+                            # 자본 + 부채 = 자산총계
+                            assets = equity + liability
+                        except:
+                            parent.print_tb(f" 예외발생 ", f"{company_name} is Error")
+                            continue
+
+                        if type(df) == type(None):
+                            df = pd.DataFrame({'ticker': [ticker], '회사명': [company_name], '자본': [assets]})
+                        else:
+                            new_data = {'ticker': ticker, '회사명': company_name, '자본': assets}
+                            df = df.append(new_data, ignore_index=True)
+
+                        print(f"{company_name} is db in")
+
+                        # for debug
+                        cnt += 1
+                        if cnt > 20:
+                            break
+
+                        # break
+                    else:
+                        parent.print_tb(f" 예외발생 ", f"{company_name} is None")
+
+                df = df.set_index('ticker')
+                parent.print_tb(f" inserted db ", str(df))
+                df.to_sql(list, con, if_exists='replace')
+
+            con.close()
         else:
             df = None
             buy_start_date = '1201'  # MMDD
