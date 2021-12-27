@@ -5,6 +5,7 @@ import OpenDartReader
 from pykrx import stock
 import pandas as pd
 import numpy as np
+from marcap import marcap_data
 
 env = environ.Env(
     # set casting, default value
@@ -21,6 +22,10 @@ class make_ana_data:
             ** 21-12-26 **
             * pykrx의 pbr데이터는 작년 pbr기준... 파싱이 필요하다
             * 그리고 이후에 필요한 데이터는 모두 opendart에 있기에 한 번은 해야할 작업
+            ** 21-12-27 **
+            * 데이터 파싱이 어려움(규격화가 되어있지 않음)
+            * 그냥 퀀트킹 쓰는게 나을듯..
+            * 나중에 더 좋은 방안이 있으면 진행
             """
 
             # read env file for opendart api
@@ -48,86 +53,40 @@ class make_ana_data:
                 cnt = 0
 
                 for ticker in tickers_all_stock:
+                    # ticker = '001040'
                     company_name = stock.get_market_ticker_name(ticker)
-                    print(company_name)
+                    print(company_name, ticker)
 
                     # 'OOOO'년 회사의 3분기 보고서(11014)
                     this_year_3Q_fs = dart.finstate_all(corp=ticker, bsns_year=str(list), fs_div='CFS', reprt_code='11014')
+                    last_year_3Q_fs = dart.finstate_all(corp=ticker, bsns_year=str(int(list)-1), fs_div='CFS',reprt_code='11014')
                     # 'OOOO-1'년 회사의 사업보고서(11011)
                     last_year_fs = dart.finstate_all(corp=ticker, bsns_year=str(int(list)-1), fs_div='CFS', reprt_code='11011')
 
-                    """
-                    # 3분기 보고서
-     rcept_no        reprt_code bsns_year corp_code sj_div sj_nm                                                account_id                                                                     account_nm     account_detail    thstrm_nm thstrm_amount frmtrm_nm  frmtrm_amount ord thstrm_add_amount frmtrm_q_nm frmtrm_q_amount frmtrm_add_amount
-0    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_CurrentAssets                    유동자산           -                                                            제 20 기 3분기말  421173843404  제 19 기말   1511355997808  1   NaN               NaN         NaN             NaN             
-1    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_CashAndCashEquivalents           현금및현금성자산       -                                                            제 20 기 3분기말  134553398888  제 19 기말   53509862897    2   NaN               NaN         NaN             NaN             
-2    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_TradeAndOtherCurrentReceivables  매출채권 및 기타유동채권  -                                                            제 20 기 3분기말  101025292684  제 19 기말   80862783752    3   NaN               NaN         NaN             NaN             
-3    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_Inventories                      재고자산           -                                                            제 20 기 3분기말  59194848631   제 19 기말   51456822550    4   NaN               NaN         NaN             NaN             
-4    20191114002467  11014      2019      00365387  BS     재무상태표  ifrs-full_OtherCurrentFinancialAssets      기타유동금융자산       -                                                            제 20 기 3분기말  96462163103   제 19 기말   60948339838    5   NaN               NaN         NaN             NaN             
-..              ...    ...       ...           ...  ..       ...                                    ...           ...      ..                                                                    ...          ...       ...           ...   ..   ...               ...         ...             ...             
-178  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|기타포괄손익누계액 [member]  제 20 기 3분기   -525008485    NaN       NaN            16  NaN               제 19 기 3분기  -299356066      NaN             
-179  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|이익잉여금 [member]      제 20 기 3분기   252195596487  NaN       NaN            16  NaN               제 19 기 3분기  158151595483    NaN             
-180  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본금 [member]        제 20 기 3분기   46822295000   NaN       NaN            16  NaN               제 19 기 3분기  46822295000     NaN             
-181  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본잉여금 [member]      제 20 기 3분기   106806482209  NaN       NaN            16  NaN               제 19 기 3분기  126753121445    NaN             
-182  20191114002467  11014      2019      00365387  SCE    자본변동표  ifrs-full_Equity                           기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본조정                제 20 기 3분기  
-                    """
+                    total_stocks = self.calculate_total_stocks(ticker, list+"1101")
+                    # print("total stocks : ", total_stocks)
 
                     """
-# 사업보고서 
-      rcept_no       reprt_code bsns_year corp_code sj_div sj_nm     account_id                                                             account_nm                                                                   account_detail thstrm_nm thstrm_amount frmtrm_nm  frmtrm_amount bfefrmtrm_nm bfefrmtrm_amount ord thstrm_add_amount
-0    20200330003824  11011      2019      00365387  BS     재무상태표  ifrs-full_CurrentAssets                                                유동자산           -                                                            제 20 기    501055395105  제 19 기    1512070831211  제 18 기       318877073839     1   NaN             
-1    20200330003824  11011      2019      00365387  BS     재무상태표  ifrs-full_CashAndCashEquivalents                                       현금및현금성자산       -                                                            제 20 기    122986211759  제 19 기    53509862897    제 18 기       77402142843      2   NaN             
-2    20200330003824  11011      2019      00365387  BS     재무상태표  dart_ShortTermDepositsNotClassifiedAsCashEquivalents                   단기금융상품         -                                                            제 20 기                  제 19 기                   제 18 기       1366172085       3   NaN             
-3    20200330003824  11011      2019      00365387  BS     재무상태표  dart_CurrentFinancialAssetDesignationAsAtFairValueThroughProfitOrLoss  당기손익인식금융자산     -                                                            제 20 기                  제 19 기                   제 18 기       1404922800       4   NaN             
-4    20200330003824  11011      2019      00365387  BS     재무상태표  ifrs-full_TradeAndOtherCurrentReceivables                              매출채권 및 기타유동채권  -                                                            제 20 기    104945550415  제 19 기    80862783752    제 18 기       122363215331     5   NaN             
-..              ...    ...       ...           ...  ..       ...                                        ...                                        ... ..                                                               ...             ...     ...            ...       ...                ...    ..   ...             
-205  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|기타포괄손익누계액 [member]  제 20 기    -3055969672   제 19 기    -733914250     제 18 기       -86326079        19  NaN             
-206  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|이익잉여금 [member]      제 20 기    198771796598  제 19 기    157174672951   제 18 기       160276835162     19  NaN             
-207  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본금 [member]        제 20 기    46822295000   제 19 기    46822295000    제 18 기       46822295000      19  NaN             
-208  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본잉여금 [member]      제 20 기    100667329755  제 19 기    105883019120   제 18 기       103825938845     19  NaN             
-209  20200330003824  11011      2019      00365387  SCE    자본변동표  ifrs-full_Equity                                                       기말자본           자본 [member]|지배기업의 소유주에게 귀속되는 자본 [member]|자본조정                제 20 기    -24721096254  제 19 기    -22058673120   제 18 기       -22058673120     19  NaN             
-
+                    this_year_3Q_fs.to_excel('./this_year_3Q_fs.xlsx')
+                    last_year_fs.to_excel('./last_year_fs.xlsx')
+                    last_year_3Q_fs.to_excel('./last_year_3Q_fs.xlsx')
+                    return
                     """
 
-                    this_year_3Q_fs.to_excel('./test1.xlsx')
-                    last_year_fs.to_excel('./test3.xlsx')
-
-
-                    #parent.print_tb(f" this_year_3Q_fs : 3분기보고서 ", str(this_year_3Q_fs))
-                    #parent.print_tb(f" last_year_3Q_fs : 3분기보고서 ", str(last_year_3Q_fs))
-                    #parent.print_tb(f" 사업보고서 ", str(last_year_fs))
-                    #break
-
-                    if type(this_year_3Q_fs) != type(None) and type(last_year_fs) != type(None):
+                    if type(this_year_3Q_fs) != type(None) and \
+                            type(last_year_fs) != type(None) and \
+                            type(last_year_3Q_fs) != type(None):
                         try:
-                            equity = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['BS']) & this_year_3Q_fs['account_id'].isin(
-                                ['ifrs-full_Equity']), 'thstrm_amount'].replace(",", ""))
-                            # 당기부채(부채총계)
-                            liability = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['BS']) & this_year_3Q_fs['account_id'].isin(
-                                ['ifrs-full_Liabilities']), 'thstrm_amount'].replace(",", ""))
-                            # 자본 + 부채 = 자산총계
-                            assets = equity + liability
-
-                            print('\n\n')
-                            print(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['IS']) & this_year_3Q_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'frmtrm_add_amount'].replace(",", ""))
-                            print(last_year_fs.loc[last_year_fs['sj_div'].isin(['IS']) & last_year_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'thstrm_amount'].replace(",",""))
-                            print(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['IS']) & this_year_3Q_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'thstrm_add_amount'].replace(",", ""))
-
-                            return
-
-                            profit_last_3Q = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['IS']) & this_year_3Q_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'frmtrm_add_amount'].replace(",", ""))
-                            profit_last = int(last_year_fs.loc[last_year_fs['sj_div'].isin(['IS']) & last_year_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'thstrm_amount'].replace(",",""))
-                            profit_this_3Q = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['IS']) & this_year_3Q_fs['account_id'].isin(['ifrs-full_ProfitLossAttributableToOwnersOfParent']), 'thstrm_add_amount'].replace(",", ""))
-
-                            profit = (profit_last - profit_last_3Q) + profit_this_3Q
+                            assets = self.calculate_this_year_asset(this_year_3Q_fs)
+                            profit = self.calculate_4q_to_3q_profit(this_year_3Q_fs, last_year_3Q_fs, last_year_fs)
                         except Exception as e:
                             parent.print_tb(f" 예외발생 ", f"{company_name} is Error : {e}")
                             continue
 
                         if type(df) == type(None):
-                            df = pd.DataFrame({'ticker': [ticker], '회사명': [company_name], '자본': [assets], '순이익': [profit]})
+                            df = pd.DataFrame({'ticker': [ticker], '회사명': [company_name], '자본': [assets], '순이익': [profit], '발행주식수': [total_stocks]})
                         else:
-                            new_data = {'ticker': ticker, '회사명': company_name, '자본': assets, '순이익': profit}
+                            new_data = {'ticker': ticker, '회사명': company_name, '자본': assets, '순이익': profit, '발행주식수':total_stocks}
                             df = df.append(new_data, ignore_index=True)
 
                         print(f"{company_name} is db in")
@@ -141,8 +100,13 @@ class make_ana_data:
                     else:
                         if type(this_year_3Q_fs) == type(None):
                             parent.print_tb(f" 예외발생 ", f"this_year_3Q_fs : {company_name} is None")
+                            print(f" 예외발생 ", f"this_year_3Q_fs : {company_name} is None")
                         if type(last_year_fs) == type(None):
                             parent.print_tb(f" 예외발생 ", f"last_year_fs : {company_name} is None")
+                            print(f" 예외발생 ", f"last_year_fs : {company_name} is None")
+                        if type(last_year_3Q_fs) == type(None):
+                            parent.print_tb(f" 예외발생 ", f"last_year_3Q_fs : {company_name} is None")
+                            print(f" 예외발생 ", f"last_year_3Q_fs : {company_name} is None")
 
                 df = df.set_index('ticker')
                 parent.print_tb(f" inserted db ", str(df))
@@ -233,22 +197,57 @@ class make_ana_data:
 
             parent.print_tb(f" total ", "ror : " + str(total_ror) + " | mdd : " + str(total_mdd))
 
-            """
-            # 참고용 이후 지울 것
-                # merge dataframes
-                df_temp = df_temp.reset_index()#.rename(columns={"index": "ticker"})
-                if type(df) != type(None):
-                    df = pd.concat([df, df_temp], ignore_index=True)
-                else:
-                    df = df_temp.copy()
-
-                parent.print_tb(f" {list} ", str(df))
-                # df_temp.to_excel('./test.xlsx')
-
-            #df_ = df.pivot(index="year", column="티커",)
-            """
-
         self.start()
+
+    def calculate_total_stocks(self, ticker, date):
+        df = marcap_data(date, code=ticker)
+        df = df.assign(Amount=df['Amount'].astype('int64'), Marcap=df['Marcap'].astype('int64'))
+        return int(df['Marcap'] / df['Close'])
+
+
+    def calculate_4q_to_3q_profit(self, this_year_3Q_fs, last_year_3Q_fs, last_year_fs):
+        sj_div_list = ['SCE', 'CIS', 'IS']
+        account_id_list = ['ifrs-full_ProfitLoss']
+
+        # 올해 1~3분기 당기순이익
+        profit_this_year_1_3Q = this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(sj_div_list) &
+                                                    this_year_3Q_fs['account_id'].isin(account_id_list),
+                                                    # this_year_3Q_fs['account_detail'].isin(account_detail_list),
+                                                    'thstrm_add_amount'].replace(",", "")
+
+        profit_this_year_1_3Q = int(profit_this_year_1_3Q.iat[0])
+        # print("올해 1~3분기 당기순이익 : ", profit_this_year_1_3Q)
+
+        # 지난해 1~3분기 당기순이익
+        profit_last_year_1_3Q = last_year_3Q_fs.loc[last_year_3Q_fs['sj_div'].isin(sj_div_list) &
+                                                    last_year_3Q_fs['account_id'].isin(account_id_list),
+                                                    'thstrm_add_amount'].replace(",", "")
+
+        profit_last_year_1_3Q = int(profit_last_year_1_3Q.iat[0])
+        # print("지난해 1~3분기 당기순이익 : ", profit_last_year_1_3Q)
+
+        # 지난해 한해 당기순이익
+        profit_last_year = last_year_fs.loc[last_year_fs['sj_div'].isin(sj_div_list) &
+                                            last_year_fs['account_id'].isin(account_id_list),
+                                            'thstrm_amount'].replace(",", "")
+
+        profit_last_year = int(profit_last_year.iat[0])
+        # print("지난해 한해 당기순이익 : ", profit_last_year)
+
+        # 작년 4Q ~ 올해 3Q 당기순이익 계산
+        profit_last_year_4Q = profit_last_year - profit_last_year_1_3Q
+        return profit_last_year_4Q + profit_this_year_1_3Q
+        # print("지난해 4Q ~ 올해 3Q 당기순이익 : ", profit)
+
+    def calculate_this_year_asset(self, this_year_3Q_fs):
+        equity = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['BS']) & this_year_3Q_fs['account_id'].isin(
+            ['ifrs-full_Equity']), 'thstrm_amount'].replace(",", ""))
+        # 당기부채(부채총계)
+        liability = int(this_year_3Q_fs.loc[this_year_3Q_fs['sj_div'].isin(['BS']) & this_year_3Q_fs['account_id'].isin(
+            ['ifrs-full_Liabilities']), 'thstrm_amount'].replace(",", ""))
+        # 자본 + 부채 = 자산총계
+        return equity + liability
+
 
     def calculate_ror_mdd(self, df):
         # calculate ror

@@ -53,6 +53,40 @@ class MainWindow(QMainWindow, form_class):
         self.write_sql_test.clicked.connect(self.on_clicked_write_sql_test)
         self.read_sql_test.clicked.connect(self.on_clicked_read_sql_test)
 
+        self.add_column_btn.clicked.connect(self.on_clicked_add_column_btn)
+        self.add_row_btn.clicked.connect(self.on_clicked_add_row_btn)
+        self.del_row_btn.clicked.connect(self.on_clicked_del_row_btn)
+
+    @clear_textbrowser_decorator
+    def on_clicked_add_column_btn(self):
+        con = sqlite3.connect("./stock.db")
+
+        cursor = con.cursor()
+        cursor.execute("ALTER TABLE '2021' ADD COLUMN 'new_column'")
+
+        con.commit()
+        con.close()
+
+    @clear_textbrowser_decorator
+    def on_clicked_add_row_btn(self):
+        con = sqlite3.connect("./stock.db")
+
+        cursor = con.cursor()
+        cursor.execute("INSERT INTO '2021' VALUES('1', '2', 3, 4, 5)")
+
+        con.commit()
+        con.close()
+
+    @clear_textbrowser_decorator
+    def on_clicked_del_row_btn(self):
+        con = sqlite3.connect("./stock.db")
+
+        cursor = con.cursor()
+        cursor.execute("DELETE FROM '2021' WHERE ticker='1'")
+
+        con.commit()
+        con.close()
+
     @clear_textbrowser_decorator
     def on_clicked_write_sql_test(self):
         start = datetime(2010, 1, 1)
